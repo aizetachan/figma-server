@@ -50,3 +50,11 @@ app.post('/respuesta-gpt', (req, res) => {
 function generarIDunico() {
   return Math.random().toString(36).substr(2, 9);
 }
+
+// Ruta nueva para verificar si canal existe y está conectado
+app.post('/verificar-canal', (req, res) => {
+  const { userId } = req.body;
+  const conectado = usuarios.has(userId);
+  res.json({ conectado });
+});
+
