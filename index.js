@@ -25,7 +25,7 @@ wss.on('connection', (ws) => {
     mensajeUsuario.userId = userId;
 
     // Aquí conecta tu proyecto de Replit (cuando lo tengas):
-    await axios.post('https://figma-ai-tool.replit.app/figma', mensajeUsuario);
+    await axios.post('https://figma-ai-tool.replit.app', mensajeUsuario);
   });
 
   ws.on('close', () => usuarios.delete(userId));
