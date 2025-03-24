@@ -14,31 +14,36 @@ app.use(cors())
 const server = createServer(app)
 const PORT = process.env.PORT || 8080
 
-// Iniciamos el servidor en el puerto seleccionado
+// Ponemos en marcha el servidor
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
 })
 
-// Configuramos el servidor WebSocket usando la misma conexión HTTP
+// Configuramos el servidor WebSocket en el mismo servidor HTTP
 const wss = new WebSocket.Server({ server })
 
-// (Opcional) Mapa para almacenar conexiones identificadas por usuario
+// Mapa para almacenar conexiones (usuarios), identificados por userId
 const usuarios = new Map<string, WebSocket>()
 
 wss.on('connection', (socket: WebSocket) => {
-  // Asigna un ID único (userId) para cada nueva conexión
+  // Al conectarse un nuevo cliente, creamos un userId único
   const userId = Math.random().toString(36).substr(2, 9)
   usuarios.set(userId, socket)
 
   console.log(`✅ Nuevo cliente conectado con ID: ${userId}`)
 
-  // Enviamos el userId al cliente (plugin MCP) nada más conectarse
+  // Enviamos el userId al cliente al conectarse
   socket.send(JSON.stringify({ tipo: 'conexion', userId }))
 
-  // Cuando el cliente envía un mensaje
+  // Cuando el cliente envía un mensaje, respondemos con un "ack"
   socket.on('message', (data) => {
-    console.log('Mensaje recibido del cliente:', data.toString())
-    // Aquí podrías procesar la data, reenviarla a Replit, etc.
+    console.log(`📥 Mensaje del cliente [${userId}]:`, data.toString())
+    // Respuesta inmediata para confirmar
+    socket.send(JSON.stringify({
+      tipo: 'ack',
+      mensaje: 'Recibido con éxito',
+      echo: data.toString()
+    }))
   })
 
   // Cuando el cliente se desconecta
@@ -52,10 +57,14 @@ wss.on('connection', (socket: WebSocket) => {
 app.post('/respuesta-gpt', (req, res) => {
   const { userId, respuestaGPT } = req.body
 
-  // Verificamos si existe el socket correspondiente al userId
+  // Buscamos al usuario por userId en el mapa
   const usuarioSocket = usuarios.get(userId)
+
   if (usuarioSocket) {
-    usuarioSocket.send(JSON.stringify({ tipo: 'respuesta', respuestaGPT }))
+    usuarioSocket.send(JSON.stringify({ 
+      tipo: 'respuesta', 
+      respuestaGPT 
+    }))
     return res.json({ status: 'ok', mensaje: 'Respuesta enviada al usuario' })
   } else {
     return res.json({ status: 'error', mensaje: 'Usuario no encontrado o desconectado' })
