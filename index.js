@@ -7,38 +7,46 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Servidor HTTP
+// Servidor HTTP y WebSocket juntos
 const server = app.listen(process.env.PORT || 8080);
-
-// Servidor WebSocket
 const wss = new WebSocket.Server({ server });
 
+// Sesiones de usuarios (userId únicos)
 const usuarios = new Map();
 
 wss.on('connection', (ws) => {
-  const userId = Math.random().toString(36).substr(2, 9);
+  const userId = generarIDunico();
   usuarios.set(userId, ws);
+
+  // Envía al usuario su canal único (userId)
   ws.send(JSON.stringify({ tipo: 'conexion', userId }));
 
   ws.on('message', async (mensaje) => {
     const mensajeUsuario = JSON.parse(mensaje);
     mensajeUsuario.userId = userId;
-
-    // Aquí conecta tu proyecto de Replit (cuando lo tengas):
-    await axios.post('https://figma-ai-tool.replit.app', mensajeUsuario);
+    
+    // No es necesario enviar a Replit desde aquí,
+    // porque ahora eso lo hacemos directamente desde la interfaz en Replit.
   });
 
-  ws.on('close', () => usuarios.delete(userId));
+  ws.on('close', () => {
+    usuarios.delete(userId);
+  });
 });
 
-// Recibir respuestas desde Replit/GPT
+// Desde Replit envías instrucciones aquí, con el canal (userId)
 app.post('/respuesta-gpt', (req, res) => {
   const { userId, respuestaGPT } = req.body;
   const usuarioSocket = usuarios.get(userId);
+
   if (usuarioSocket) {
     usuarioSocket.send(JSON.stringify({ tipo: 'respuesta', respuestaGPT }));
-    res.json({ status: 'enviado' });
+    res.json({ status: '✅ Enviado correctamente al usuario' });
   } else {
-    res.json({ status: 'usuario desconectado' });
+    res.json({ status: '⚠️ Usuario desconectado o canal incorrecto' });
   }
 });
+
+function generarIDunico() {
+  return Math.random().toString(36).substr(2, 9);
+}
